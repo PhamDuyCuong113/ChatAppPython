@@ -1,0 +1,284 @@
+{% extends "chat/Base.html" %}
+{% load static %}
+{% load chat_extras %}
+
+{% block title %}Nhóm: {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="chat-wrapper">
+  <!-- 🧠 Header -->
+  <div class="chat-header d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <img src="{% static 'images/group_icon.png' %}" alt="group" class="avatar">
+      <div class="friend-info">
+        <h5 class="friend-name mb-0">{{ group.name }}</h5>
+        <small class="text-muted">{{ group.members.count }} thành viên</small>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="{% url 'chat:view_group_members' group.id %}" class="btn btn-sm btn-outline-secondary">👥 Thành viên</a>
+      {% if curr_user == group.owner %}
+      <a href="{% url 'chat:clear_group_chat' group.id %}" class="btn btn-sm btn-outline-danger"
+         onclick="return confirm('Xóa toàn bộ đoạn chat nhóm này?')">🗑 Xóa chat</a>
+      {% endif %}
+      <a href="{% url 'chat:leave_group' group.id %}" class="btn btn-sm btn-outline-dark"
+         onclick="return confirm('Bạn có chắc muốn rời khỏi nhóm này?')">🚪 Rời nhóm</a>
+    </div>
+  </div>
+
+  <!-- ➕ Thêm thành viên -->
+  {% if curr_user == group.owner %}
+  <div class="add-member-box p-2 border-bottom bg-light">
+    <form action="{% url 'chat:add_member_to_group' group.id %}" method="post" class="d-flex gap-2">
+      {% csrf_token %}
+      <input type="text" name="username" placeholder="Nhập username cần thêm..." class="form-control" required>
+      <button type="submit" class="btn btn-sm btn-primary">Thêm</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- 💬 Chat board -->
+  <div id="board" class="chat-board">
+    {% for m in messages %}
+      {% if m.sender.username == curr_user.username %}
+        <div class="msg msg-out">
+          <div class="bubble">
+            {% if m.file %}
+              {% if m.file.url|lower|endswith:".jpg" or m.file.url|lower|endswith:".png" or m.file.url|lower|endswith:".jpeg" %}
+                <img src="{{ m.file.url }}" alt="image" class="chat-image">
+              {% else %}
+                <a href="{{ m.file.url }}" target="_blank" class="file-link">📁 {{ m.file.name|basename }}</a>
+              {% endif %}
+            {% endif %}
+            {% if m.content %}
+              <p>{{ m.content|escape }}</p>
+            {% endif %}
+            <span class="time">{{ m.timestamp|date:"H:i" }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="msg msg-in">
+          <div class="bubble">
+            <p>
+              <strong>{{ m.sender.username }}</strong>
+              {% if m.sender.username == group.owner.username %}
+                <span class="text-primary">(chủ nhóm)</span>
+              {% endif %}:
+            </p>
+            {% if m.file %}
+              {% if m.file.url|lower|endswith:".jpg" or m.file.url|lower|endswith:".png" or m.file.url|lower|endswith:".jpeg" %}
+                <img src="{{ m.file.url }}" alt="image" class="chat-image">
+              {% else %}
+                <a href="{{ m.file.url }}" target="_blank" class="file-link">📁 {{ m.file.name|basename }}</a>
+              {% endif %}
+            {% endif %}
+            {% if m.content %}
+              <p>{{ m.content|escape }}</p>
+            {% endif %}
+            <span class="time">{{ m.timestamp|date:"H:i" }}</span>
+          </div>
+        </div>
+      {% endif %}
+    {% empty %}
+      <p class="text-muted text-center mt-3">Chưa có tin nhắn nào trong nhóm này.</p>
+    {% endfor %}
+  </div>
+
+  <!-- 📝 Ô nhập -->
+  <form id="group-chat-box" class="chat-input" autocomplete="off" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="fileInput" class="file-upload">📁</label>
+    <input type="file" id="fileInput" name="file" accept="image/*,.pdf,.zip,.docx" hidden>
+    <input type="text" id="msg_field" name="message" placeholder="Nhập tin nhắn...">
+    <button type="submit" id="send_btn">➤</button>
+  </form>
+</div>
+
+<!-- 🌈 CSS -->
+<style>
+.chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 85vh;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.chat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f9f9;
+}
+.avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.friend-info { display: flex; flex-direction: column; }
+.friend-name { font-weight: 600; font-size: 17px; }
+.header-actions a { margin-left: 5px; }
+
+.chat-board {
+  flex: 1;
+  overflow-y: auto;
+  background: #f5f7fa;
+  padding: 18px;
+  scroll-behavior: smooth;
+}
+.msg { display: flex; margin: 8px 0; align-items: flex-end; }
+.msg-in { justify-content: flex-start; }
+.msg-out { justify-content: flex-end; }
+.bubble {
+  background: #fff;
+  border-radius: 18px;
+  padding: 10px 15px;
+  max-width: 72%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  word-wrap: break-word;
+}
+.msg-out .bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
+.msg-in .bubble { background: #fff; border-bottom-left-radius: 4px; }
+.bubble p { margin: 0; font-size: 15px; }
+.time { display: block; text-align: right; font-size: 11px; color: #777; margin-top: 4px; }
+
+.chat-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  display: block;
+}
+.file-link {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: #007bff;
+  text-decoration: none;
+}
+.file-link:hover { text-decoration: underline; }
+
+.chat-input {
+  display: flex; align-items: center;
+  padding: 10px 12px; border-top: 1px solid #ddd; background: #fafafa;
+}
+.chat-input input[type=text] {
+  flex: 1; border: none; background: #fff; border-radius: 20px;
+  padding: 10px 14px; font-size: 15px; outline: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.chat-input button {
+  border: none; margin-left: 8px; width: 42px; height: 42px;
+  font-size: 18px; border-radius: 50%; background: #4caf50;
+  color: white; cursor: pointer; transition: 0.2s;
+}
+.chat-input button:hover { background: #43a047; transform: scale(1.05); }
+.file-upload { cursor: pointer; font-size: 20px; margin-right: 8px; }
+</style>
+
+<!-- ⚙️ JS -->
+{% block scripts %}
+{{ block.super }}
+<script>
+const currUser = "{{ curr_user.username }}";
+const groupId = "{{ group.id }}";
+const board = document.getElementById("board");
+const input = document.getElementById("msg_field");
+const fileInput = document.getElementById("fileInput");
+
+// ✅ Preview file khi chọn
+const fileLabel = document.querySelector(".file-upload");
+
+fileInput.addEventListener("change", () => {
+  
+  if (fileInput.files.length > 0) {
+    const f = fileInput.files[0];
+    let preview = "";
+
+    if (fileLabel.querySelector("img") || fileLabel.querySelector("span")) {
+      fileLabel.innerHTML = "📁"; // clear preview cũ trước khi hiện mới
+    }
+
+    if (f.type.startsWith("image/")) {
+      const url = URL.createObjectURL(f);
+      preview = `<img src="${url}" class="chat-image" style="max-width:120px;max-height:120px;border-radius:6px;margin-left:8px;">`;
+    } else {
+      preview = `<span style="font-size:13px;margin-left:8px;color:#555;">📁 ${f.name}</span>`;
+    }
+
+    fileLabel.innerHTML = `📁${preview}`;
+  } else {
+    fileLabel.innerHTML = "📁"; // reset nếu bỏ chọn
+  }
+});
+
+function escapeHtml(str){return str.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function fmtTime(){const d=new Date();return d.getHours().toString().padStart(2,'0')+":"+d.getMinutes().toString().padStart(2,'0');}
+function scrollToEnd(){board.scrollTop=board.scrollHeight;}
+
+function appendMsg(sender, text, time, fileUrl){
+  const isMine = sender === currUser;
+  let content = "";
+
+  if(fileUrl){
+    const lower = fileUrl.toLowerCase();
+    const filename = fileUrl.split("/").pop();
+
+    if(lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".jpeg")){
+      content += `<img src="${fileUrl}" class="chat-image">`;
+    } 
+    else if(lower.endsWith(".pdf")){
+      content += `<a href="${fileUrl}" download class="file-btn pdf">📕 PDF File</a>`;
+    } 
+    else if(lower.endsWith(".doc") || lower.endsWith(".docx")){
+      content += `<a href="${fileUrl}" download class="file-btn word">📄 Word File</a>`;
+    } 
+    else if(lower.endsWith(".zip") || lower.endsWith(".rar")){
+      content += `<a href="${fileUrl}" download class="file-btn zip">🗜 ZIP File</a>`;
+    } 
+    else {
+      content += `<a href="${fileUrl}" download class="file-btn other">📁 ${filename}</a>`;
+    }
+  }
+
+  if(text) content += `<p>${escapeHtml(text)}</p>`;
+  
+  const html = `<div class="msg ${isMine?'msg-out':'msg-in'}"><div class="bubble">${content}<span class="time">${time}</span></div></div>`;
+  board.insertAdjacentHTML("beforeend", html);
+  scrollToEnd();
+}
+
+const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+const wsUrl = `${protocol}://${window.location.host}/ws/group/${groupId}/`;
+const socket = new WebSocket(wsUrl);
+
+socket.onmessage = e=>{
+  const data = JSON.parse(e.data);
+  if (data.sender === currUser) return; 
+  appendMsg(data.sender, data.message, data.time || fmtTime(), data.file || null);
+};
+
+document.getElementById("group-chat-box").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const text = input.value.trim();
+  const file = fileInput.files[0];
+  let fileUrl = null;
+
+  if(file){
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/chat/upload/", {method:"POST", body:formData});
+    const data = await res.json();
+    if(data.url) fileUrl = data.url;
+    fileInput.value = "";
+  }
+
+  if(!text && !fileUrl) return;
+  if(socket.readyState !== WebSocket.OPEN) return console.warn("⚠️ WebSocket not open");
+
+  socket.send(JSON.stringify({message:text,sender:currUser,group_id:groupId,file:fileUrl}));
+  input.value = "";
+  appendMsg(currUser, text, fmtTime(), fileUrl);
+  fileLabel.innerHTML = "📁"; 
+});
+
+window.addEventListener("beforeunload",()=>{if(socket.readyState===WebSocket.OPEN)socket.close();});
+scrollToEnd();
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "chat/Base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm p-4" style="max-width: 500px; margin: auto;">
+    <div class="text-center">
+      <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'images/user_image.jpg' %}{% endif %}" 
+           alt="Avatar" 
+           style="width:100px; height:100px; border-radius:50%; object-fit:cover;">
+      <h3 class="mt-3">{{ profile.name }}</h3>
+      <p class="text-muted">@{{ profile.username }}</p>
+    </div>
+
+    {% if profile.bio %}
+    <p class="mt-3">{{ profile.bio }}</p>
+    {% else %}
+    <p class="mt-3 text-muted fst-italic">Chưa có mô tả nào.</p>
+    {% endif %}
+
+    {% if not is_self %}
+    <div class="d-flex justify-content-center mt-4">
+      <a href="{% url 'chat:chat' profile.username %}" class="btn btn-primary me-2">Chat</a>
+      <a href="{% url 'chat:addFriend' profile.username %}" class="btn btn-success">Add friend</a>
+    </div>
+    {% else %}
+    <p class="text-center text-secondary mt-4">Đây là trang cá nhân của bạn.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

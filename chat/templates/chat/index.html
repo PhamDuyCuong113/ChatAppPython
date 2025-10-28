@@ -1,0 +1,52 @@
+{% extends 'chat/chats.html' %}
+{% load static %}
+
+{% block message %}
+<div id="message-list">
+    {% for message in messages %}
+    <div class="msg {% if curr_user == message.sender_name %}outgoing{% else %}incoming{% endif %}">
+        <div class="bubble">
+            {{ message.description }}
+        </div>
+        <div class="meta">
+            {{ message.time|date:"H:i" }}
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No messages yet.</p>
+    {% endfor %}
+</div>
+
+<script>
+    function scrolltoend() {
+        $('#board').stop().animate({
+            scrollTop: $('#board')[0].scrollHeight
+        }, 800);
+    }
+
+    $(function () {
+        setInterval(receive, 1000)
+    })
+
+    const text = `
+    <div class="msg incoming">
+        <div class="bubble">{description}</div>
+        <div class="meta">{time}</div>
+    </div>
+`;
+
+    function receive() {
+        $.get('/api/messages/' + sender_id + '/' + receiver_id, function (data) {
+            if (data.length !== 0) {
+                for (var i = 0; i < data.length; i++) {
+                    var field = text.replace('{description}', data[i].description);
+                    var time = data[i].time.slice(0, 5)
+                    field = field.replace('{time}', time);
+                    $('#board').append(field);
+                    scrolltoend();
+                }
+            }
+        })
+    }
+</script>
+{% endblock %}

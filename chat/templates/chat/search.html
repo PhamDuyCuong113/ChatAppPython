@@ -1,0 +1,42 @@
+{% extends "chat/Base.html" %}
+{% load static %}
+{% block title %}Search Friends{% endblock %}
+{% block content %}
+<center>
+    <div class="wrapper" style="width: 400px;">
+        <h2 style="margin: 16px 0px">Add Friends</h2>
+        <div class="topnav">
+            <div class="search-container">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="text" placeholder="Search by name, username" name="search" style="width: 210px">
+                    <button type="submit" class="btn btn-success">Search</button>
+                </form>
+            </div>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for user in users %}
+            <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'images/user_image.jpg' %}" alt="avatar" style="width:50px;height:50px;">
+                    <div class="ml-3">
+                        <div>{{ user.name }}</div>
+                        <div class="text-muted">@{{ user.username }}</div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <a class="btn btn-sm btn-primary" href="{% url 'chat:chat' user.username %}">Chat</a>
+                    <a class="btn btn-sm btn-success" href="{% url 'chat:addFriend' user.username %}">Add friend</a>
+                </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-center text-muted">Không tìm thấy người dùng.</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+</center>
+
+
+{% endblock %}

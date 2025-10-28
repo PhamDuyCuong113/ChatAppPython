@@ -1,0 +1,87 @@
+{% extends "chat/Base.html" %}
+{% load static %}
+
+{% block title %}Thành viên nhóm: {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">👥 Thành viên nhóm <strong>{{ group.name }}</strong></h5>
+      <div>
+        <a href="{% url 'chat:group_chat' group.id %}" class="btn btn-sm btn-secondary">
+          ⬅ Quay lại chat
+        </a>
+      </div>
+    </div>
+
+    <div class="card-body">
+      {% if members %}
+      <ul class="list-group">
+        {% for member in members %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-3">
+            <img src="{% static 'images/user_image.jpg' %}" alt="avatar"
+                 class="rounded-circle" width="42" height="42">
+            <div>
+              <strong>
+                {{ member.name }}
+                {% if member == group.owner %}
+                  <span class="text-primary">(chủ nhóm)</span>
+                {% endif %}
+              </strong><br>
+              <small class="text-muted">@{{ member.username }}</small>
+            </div>
+          </div>
+
+          <!-- ✅ Hiển thị nút xóa chỉ nếu là chủ nhóm -->
+          {% if request.user == group.owner and member != group.owner %}
+          <a href="{% url 'chat:remove_member' group.id member.username %}"
+             class="btn btn-sm btn-outline-danger"
+             onclick="return confirm('Bạn có chắc muốn xóa {{ member.name }} khỏi nhóm không?')">
+            ❌ Xóa
+          </a>
+          {% elif member == group.owner %}
+          <span class="badge bg-primary">👑 Trưởng nhóm</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p class="text-muted text-center mt-3">Không có thành viên nào trong nhóm.</p>
+      {% endif %}
+    </div>
+
+    <div class="card-footer d-flex justify-content-between">
+      <a href="{% url 'chat:leave_group' group.id %}"
+         class="btn btn-outline-danger"
+         onclick="return confirm('Bạn có chắc muốn rời khỏi nhóm {{ group.name }} không?')">
+        🚪 Rời nhóm
+      </a>
+
+      {% if request.user == group.owner %}
+      <a href="{% url 'chat:clear_group_chat' group.id %}"
+         class="btn btn-outline-secondary"
+         onclick="return confirm('Bạn có chắc muốn xóa toàn bộ đoạn chat của nhóm này không?')">
+        🗑 Xóa đoạn chat nhóm
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+.card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+.list-group-item:hover {
+  background: #f8f9fa;
+}
+</style>
+{% endblock %}
