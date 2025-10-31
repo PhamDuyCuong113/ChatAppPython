@@ -1,0 +1,7 @@
+<form method="POST">
+  {% csrf_token %}
+  <h3>Nhập mã OTP gửi qua email</h3>
+  <input type="text" name="otp" maxlength="6" placeholder="Nhập mã gồm 6 số">
+  <button type="submit">Xác nhận</button>
+  {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+</form>

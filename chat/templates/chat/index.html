@@ -1,52 +1,89 @@
-{% extends 'chat/chats.html' %}
+{% extends 'chat/Base.html' %}
 {% load static %}
 
-{% block message %}
-<div id="message-list">
-    {% for message in messages %}
-    <div class="msg {% if curr_user == message.sender_name %}outgoing{% else %}incoming{% endif %}">
-        <div class="bubble">
-            {{ message.description }}
-        </div>
-        <div class="meta">
-            {{ message.time|date:"H:i" }}
-        </div>
-    </div>
-    {% empty %}
-    <p class="text-muted">No messages yet.</p>
-    {% endfor %}
+{% block title %}PyChat - Trang chính{% endblock %}
+
+{% block content %}
+<div class="chat-main">
+  <div class="empty-chat text-center mt-5">
+    <h4 class="text-muted mb-2">Chào {{ curr_user.name }} 👋</h4>
+    <p>Chọn một người hoặc nhóm để bắt đầu trò chuyện 💬</p>
+  </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
 <script>
-    function scrolltoend() {
-        $('#board').stop().animate({
-            scrollTop: $('#board')[0].scrollHeight
-        }, 800);
-    }
+/**
+ * Script này chỉ xử lý phần hiển thị và cập nhật tin nhắn mới nhất
+ * cho danh sách bạn bè/nhóm, không chạy WebSocket vì WebSocket được
+ * dùng trong file chat riêng.
+ */
 
-    $(function () {
-        setInterval(receive, 1000)
-    })
+// --- CÁC HÀM XỬ LÝ CHUNG ---
 
-    const text = `
+/**
+ * Cuộn xuống cuối danh sách tin nhắn (nếu có board hiển thị)
+ */
+function scrollToEnd() {
+  const board = document.getElementById('board');
+  if (board) {
+    board.scrollTop = board.scrollHeight;
+  }
+}
+
+/**
+ * Hiệu ứng sáng nhóm mới nhắn (kết nối với group_chat.html)
+ * @param {number} groupId - ID của nhóm cần tạo hiệu ứng.
+ */
+function flashGroup(groupId) {
+  // Sử dụng Template Literal để chọn phần tử dễ hơn
+  const el = document.querySelector(`.group-box[data-groupid="${groupId}"]`);
+  if (el) {
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 800);
+  }
+}
+
+// --- POLLING (FALLBACK KHÔNG DÙNG WEBSOCKET) ---
+
+/**
+ * Tự động lấy tin nhắn mới mỗi 2 giây bằng AJAX Polling.
+ * (Chỉ dùng làm fallback khi không dùng WebSocket)
+ * * @param {number} senderId - ID của người gửi (người dùng hiện tại).
+ * @param {number} receiverId - ID của người nhận (bạn bè/nhóm).
+ */
+function startPolling(senderId, receiverId) {
+  // Template HTML cho tin nhắn đến
+  const messageTemplate = `
     <div class="msg incoming">
-        <div class="bubble">{description}</div>
-        <div class="meta">{time}</div>
+      <div class="bubble">{description}</div>
+      <div class="meta">{time}</div>
     </div>
-`;
-
-    function receive() {
-        $.get('/api/messages/' + sender_id + '/' + receiver_id, function (data) {
-            if (data.length !== 0) {
-                for (var i = 0; i < data.length; i++) {
-                    var field = text.replace('{description}', data[i].description);
-                    var time = data[i].time.slice(0, 5)
-                    field = field.replace('{time}', time);
-                    $('#board').append(field);
-                    scrolltoend();
-                }
-            }
-        })
-    }
+  `;
+  
+  // Thiết lập interval để lấy tin nhắn mới mỗi 2 giây
+  setInterval(() => {
+    // Gọi API để lấy tin nhắn mới
+    $.get(`/api/messages/${senderId}/${receiverId}`, function(data) {
+      if (data && data.length > 0) {
+        // Duyệt qua và hiển thị từng tin nhắn
+        for (let i = 0; i < data.length; i++) {
+          let html = messageTemplate
+            .replace('{description}', data[i].description)
+            // Cắt chuỗi thời gian để chỉ lấy giờ và phút (ví dụ: '10:30')
+            .replace('{time}', data[i].time.slice(0, 5)); 
+            
+          $('#board').append(html);
+        }
+        // Cuộn xuống cuối sau khi thêm tin nhắn
+        scrollToEnd();
+      }
+    });
+  }, 2000);
+}
 </script>
 {% endblock %}

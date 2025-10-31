@@ -1,1 +1,15 @@
+# Django
+*.py[cod]
+*.log
+
+# Virtual env
 venv/
+env/
+
+# Environment secrets
+.env
+
+
+# VSCode / IDE
+.vscode/
+.idea/

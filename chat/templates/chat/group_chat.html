@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="chat-wrapper">
-  <!-- 🧠 Header -->
+  <!-- 🔹 Header -->
   <div class="chat-header d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center gap-2">
       <img src="{% static 'images/group_icon.png' %}" alt="group" class="avatar">
@@ -16,17 +16,11 @@
       </div>
     </div>
     <div class="header-actions">
-      <a href="{% url 'chat:view_group_members' group.id %}" class="btn btn-sm btn-outline-secondary">👥 Thành viên</a>
-      {% if curr_user == group.owner %}
-      <a href="{% url 'chat:clear_group_chat' group.id %}" class="btn btn-sm btn-outline-danger"
-         onclick="return confirm('Xóa toàn bộ đoạn chat nhóm này?')">🗑 Xóa chat</a>
-      {% endif %}
-      <a href="{% url 'chat:leave_group' group.id %}" class="btn btn-sm btn-outline-dark"
-         onclick="return confirm('Bạn có chắc muốn rời khỏi nhóm này?')">🚪 Rời nhóm</a>
+      <button id="profileBtn" class="btn btn-sm btn-outline-secondary">👥 Hồ sơ Nhóm</button>
+      <button id="menuToggle" class="btn btn-sm btn-outline-dark" title="Chi tiết nhóm">⋮</button>
     </div>
   </div>
 
-  <!-- ➕ Thêm thành viên -->
   {% if curr_user == group.owner %}
   <div class="add-member-box p-2 border-bottom bg-light">
     <form action="{% url 'chat:add_member_to_group' group.id %}" method="post" class="d-flex gap-2">
@@ -37,248 +31,242 @@
   </div>
   {% endif %}
 
-  <!-- 💬 Chat board -->
+  <!-- 🔹 Chat board -->
   <div id="board" class="chat-board">
     {% for m in messages %}
-      {% if m.sender.username == curr_user.username %}
-        <div class="msg msg-out">
-          <div class="bubble">
-            {% if m.file %}
-              {% if m.file.url|lower|endswith:".jpg" or m.file.url|lower|endswith:".png" or m.file.url|lower|endswith:".jpeg" %}
-                <img src="{{ m.file.url }}" alt="image" class="chat-image">
-              {% else %}
-                <a href="{{ m.file.url }}" target="_blank" class="file-link">📁 {{ m.file.name|basename }}</a>
-              {% endif %}
-            {% endif %}
-            {% if m.content %}
-              <p>{{ m.content|escape }}</p>
-            {% endif %}
-            <span class="time">{{ m.timestamp|date:"H:i" }}</span>
-          </div>
+      {% ifchanged m.date_only %}
+        <div class="date-separator">
+          {% if m.date_only == today %}Hôm nay{% else %}{{ m.date_only }}{% endif %}
         </div>
-      {% else %}
-        <div class="msg msg-in">
-          <div class="bubble">
-            <p>
-              <strong>{{ m.sender.username }}</strong>
-              {% if m.sender.username == group.owner.username %}
-                <span class="text-primary">(chủ nhóm)</span>
-              {% endif %}:
-            </p>
-            {% if m.file %}
-              {% if m.file.url|lower|endswith:".jpg" or m.file.url|lower|endswith:".png" or m.file.url|lower|endswith:".jpeg" %}
-                <img src="{{ m.file.url }}" alt="image" class="chat-image">
+      {% endifchanged %}
+      <div class="msg {% if m.sender == curr_user.username %}msg-out{% else %}msg-in{% endif %}" id="msg-{{ m.id|default:'' }}">
+        <div class="bubble">
+          {% if m.sender != curr_user.username %}
+          <p class="mb-1">
+            <strong style="color:hsl({{ m.sender|username_to_hue }},70%,40%);">{{ m.sender }}</strong>
+            {% if group.owner and m.sender == group.owner.username %}
+              <span class="text-primary small">(chủ nhóm)</span>
+            {% endif %}:
+          </p>
+          {% endif %}
+          {% if m.file %}
+            {% with f=m.file %}
+              {% if ".jpg" in f.url or ".jpeg" in f.url or ".png" in f.url %}
+                <img src="{{ f.url }}" alt="{{ f.name }}" class="chat-image" loading="lazy">
+              {% elif ".pdf" in f.url %}
+                <a href="{{ f.url }}" target="_blank" class="file-btn pdf">📕 {{ f.name }}</a>
+              {% elif ".doc" in f.url or ".docx" in f.url %}
+                <a href="{{ f.url }}" target="_blank" class="file-btn word">📄 {{ f.name }}</a>
+              {% elif ".zip" in f.url or ".rar" in f.url %}
+                <a href="{{ f.url }}" target="_blank" class="file-btn zip">🗜 {{ f.name }}</a>
               {% else %}
-                <a href="{{ m.file.url }}" target="_blank" class="file-link">📁 {{ m.file.name|basename }}</a>
+                <a href="{{ f.url }}" target="_blank" class="file-btn other">📁 {{ f.name }}</a>
               {% endif %}
-            {% endif %}
-            {% if m.content %}
-              <p>{{ m.content|escape }}</p>
-            {% endif %}
-            <span class="time">{{ m.timestamp|date:"H:i" }}</span>
-          </div>
+            {% endwith %}
+          {% endif %}
+          {% if m.content %}<p>{{ m.content|escape }}</p>{% endif %}
+          <span class="time">{{ m.timestamp }}</span>
         </div>
-      {% endif %}
+      </div>
     {% empty %}
       <p class="text-muted text-center mt-3">Chưa có tin nhắn nào trong nhóm này.</p>
     {% endfor %}
   </div>
 
-  <!-- 📝 Ô nhập -->
+  <!-- 🔹 Form gửi -->
   <form id="group-chat-box" class="chat-input" autocomplete="off" enctype="multipart/form-data">
     {% csrf_token %}
     <label for="fileInput" class="file-upload">📁</label>
-    <input type="file" id="fileInput" name="file" accept="image/*,.pdf,.zip,.docx" hidden>
-    <input type="text" id="msg_field" name="message" placeholder="Nhập tin nhắn...">
+    <input type="file" id="fileInput" hidden accept="image/*,.pdf,.docx,.zip,.rar">
+    <input type="text" id="msg_field" placeholder="Nhập tin nhắn...">
     <button type="submit" id="send_btn">➤</button>
   </form>
 </div>
 
-<!-- 🌈 CSS -->
+<!-- 🔹 Sidebar -->
+<div id="rightSidebar" class="right-sidebar">
+  <div class="sidebar-header">
+    <div>
+      <h5 class="mb-0">{{ group.name }}</h5>
+      <small class="text-muted">{{ group.members.count }} thành viên</small>
+    </div>
+    <div>
+      <a href="{% url 'chat:clear_group_chat' group.id %}" class="btn btn-sm btn-outline-danger me-2"
+         onclick="return confirm('Xóa toàn bộ đoạn chat nhóm này?')">🗑</a>
+      <a href="{% url 'chat:leave_group' group.id %}" class="btn btn-sm btn-outline-light me-2"
+         onclick="return confirm('Rời nhóm này?')">🚪</a>
+      <button id="closeSidebar" class="btn btn-sm btn-outline-light">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🔹 CSS -->
 <style>
-.chat-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 85vh;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-.chat-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f9f9f9;
-}
-.avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-.friend-info { display: flex; flex-direction: column; }
-.friend-name { font-weight: 600; font-size: 17px; }
-.header-actions a { margin-left: 5px; }
-
-.chat-board {
-  flex: 1;
-  overflow-y: auto;
-  background: #f5f7fa;
-  padding: 18px;
-  scroll-behavior: smooth;
-}
-.msg { display: flex; margin: 8px 0; align-items: flex-end; }
-.msg-in { justify-content: flex-start; }
-.msg-out { justify-content: flex-end; }
-.bubble {
-  background: #fff;
-  border-radius: 18px;
-  padding: 10px 15px;
-  max-width: 72%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  word-wrap: break-word;
-}
-.msg-out .bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
-.msg-in .bubble { background: #fff; border-bottom-left-radius: 4px; }
-.bubble p { margin: 0; font-size: 15px; }
-.time { display: block; text-align: right; font-size: 11px; color: #777; margin-top: 4px; }
-
-.chat-image {
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 8px;
-  margin-bottom: 5px;
-  display: block;
-}
-.file-link {
-  display: inline-block;
-  margin-bottom: 6px;
-  color: #007bff;
-  text-decoration: none;
-}
-.file-link:hover { text-decoration: underline; }
-
-.chat-input {
-  display: flex; align-items: center;
-  padding: 10px 12px; border-top: 1px solid #ddd; background: #fafafa;
-}
-.chat-input input[type=text] {
-  flex: 1; border: none; background: #fff; border-radius: 20px;
-  padding: 10px 14px; font-size: 15px; outline: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.chat-input button {
-  border: none; margin-left: 8px; width: 42px; height: 42px;
-  font-size: 18px; border-radius: 50%; background: #4caf50;
-  color: white; cursor: pointer; transition: 0.2s;
-}
-.chat-input button:hover { background: #43a047; transform: scale(1.05); }
-.file-upload { cursor: pointer; font-size: 20px; margin-right: 8px; }
+.chat-wrapper { display:flex; flex-direction:column; height:85vh; background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.1); overflow:hidden; transition:margin-right .3s ease; }
+.chat-header { padding:12px 16px; border-bottom:1px solid #e0e0e0; background:#f9f9f9; }
+.avatar { width:52px; height:52px; border-radius:50%; object-fit:cover; }
+.chat-board { flex:1; overflow-y:auto; background:#f5f7fa; padding:18px; scroll-behavior:smooth; }
+.msg { display:flex; margin:8px 0; align-items:flex-end; }
+.msg-in { justify-content:flex-start; }
+.msg-out { justify-content:flex-end; }
+.bubble { background:#fff; border-radius:18px; padding:10px 15px; max-width:72%; box-shadow:0 1px 3px rgba(0,0,0,0.06); word-wrap:break-word; }
+.msg-out .bubble { background:#dcf8c6; border-bottom-right-radius:4px; }
+.time { display:block; text-align:right; font-size:11px; color:#777; margin-top:4px; }
+.chat-image { max-width:200px; max-height:200px; border-radius:8px; margin-bottom:5px; display:block; cursor:pointer; transition:transform .2s; }
+.chat-image:hover { transform:scale(1.03); }
+.file-btn { display:inline-block; margin-bottom:6px; padding:6px 10px; border-radius:6px; text-decoration:none; font-size:14px; color:white; }
+.file-btn.pdf { background:#e53935; }
+.file-btn.word { background:#1976d2; }
+.file-btn.zip { background:#6d4c41; }
+.file-btn.other { background:#546e7a; }
+.date-separator { text-align:center; font-size:12px; color:#666; margin:10px 0; position:relative; }
+.date-separator::before, .date-separator::after { content:""; position:absolute; top:50%; width:35%; height:1px; background:#ccc; }
+.date-separator::before { left:0; } .date-separator::after { right:0; }
+.chat-input { display:flex; align-items:center; padding:10px 12px; border-top:1px solid #ddd; background:#fafafa; }
+.chat-input input[type=text] { flex:1; border:none; background:#fff; border-radius:20px; padding:10px 14px; font-size:15px; outline:none; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.chat-input button { border:none; margin-left:8px; width:42px; height:42px; font-size:18px; border-radius:50%; background:#4caf50; color:white; cursor:pointer; transition:.2s; }
+.chat-input button:hover { background:#43a047; transform:scale(1.05); }
+.file-upload { cursor:pointer; font-size:20px; margin-right:8px; }
+.right-sidebar { position:fixed; top:0; right:0; width:0; height:100%; background:#fff; box-shadow:-2px 0 8px rgba(0,0,0,0.2); overflow-y:auto; border-left:1px solid #ccc; transition:width .3s ease; z-index:1001; }
+.right-sidebar.active { width:360px; }
+.sidebar-header { display:flex; justify-content:space-between; align-items:center; padding:15px; background:#009688; color:white; }
 </style>
 
-<!-- ⚙️ JS -->
+<!-- 🔹 JS -->
 {% block scripts %}
 {{ block.super }}
 <script>
-const currUser = "{{ curr_user.username }}";
-const groupId = "{{ group.id }}";
-const board = document.getElementById("board");
-const input = document.getElementById("msg_field");
-const fileInput = document.getElementById("fileInput");
+(() => {
+  const currUser = "{{ curr_user.username }}";
+  const groupId = "{{ group.id }}";
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const board = document.getElementById("board");
+  const input = document.getElementById("msg_field");
+  const fileInput = document.getElementById("fileInput");
+  const fileLabel = document.querySelector(".file-upload");
+  const sidebar = document.getElementById("rightSidebar");
+  const menuBtn = document.getElementById("menuToggle");
+  const closeBtn = document.getElementById("closeSidebar");
+  const shownMsgs = new Set();
 
-// ✅ Preview file khi chọn
-const fileLabel = document.querySelector(".file-upload");
+  menuBtn.addEventListener("click",()=>sidebar.classList.add("active"));
+  closeBtn.addEventListener("click",()=>sidebar.classList.remove("active"));
 
-fileInput.addEventListener("change", () => {
-  
-  if (fileInput.files.length > 0) {
-    const f = fileInput.files[0];
-    let preview = "";
+  const fmtTime = () => new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+  const scrollToEnd = () => board.scrollTop = board.scrollHeight;
+  const escapeHtml = str => !str ? "" : str.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 
-    if (fileLabel.querySelector("img") || fileLabel.querySelector("span")) {
-      fileLabel.innerHTML = "📁"; // clear preview cũ trước khi hiện mới
+  function appendMsg(id, sender, text, time, fileUrl) {
+    if (!id) id = crypto.randomUUID();
+    if (shownMsgs.has(id)) return;
+    shownMsgs.add(id);
+
+    const isMine = sender === currUser;
+    let content = "";
+
+    if (!isMine)
+      content += `<p class="mb-1"><strong style="color:hsl(${Math.abs(sender.split('').reduce((a,b)=>a+b.charCodeAt(0),0)%360)},70%,40%);">${sender}</strong>:</p>`;
+
+    if (fileUrl) {
+      const lower = fileUrl.toLowerCase();
+      const name = decodeURIComponent(fileUrl.split("/").pop());
+      if (/\.(jpg|jpeg|png|gif|webp)$/i.test(lower))
+        content += `<img src="${fileUrl}" class="chat-image" loading="lazy">`;
+      else if (lower.endsWith(".pdf"))
+        content += `<a href="${fileUrl}" target="_blank" class="file-btn pdf">📕 PDF</a>`;
+      else if (/\.(doc|docx)$/i.test(lower))
+        content += `<a href="${fileUrl}" target="_blank" class="file-btn word">📄 Word</a>`;
+      else if (/\.(zip|rar|7z)$/i.test(lower))
+        content += `<a href="${fileUrl}" target="_blank" class="file-btn zip">🗜 ZIP</a>`;
+      else
+        content += `<a href="${fileUrl}" target="_blank" class="file-btn other">📁 ${name}</a>`;
     }
 
-    if (f.type.startsWith("image/")) {
-      const url = URL.createObjectURL(f);
-      preview = `<img src="${url}" class="chat-image" style="max-width:120px;max-height:120px;border-radius:6px;margin-left:8px;">`;
-    } else {
-      preview = `<span style="font-size:13px;margin-left:8px;color:#555;">📁 ${f.name}</span>`;
-    }
-
-    fileLabel.innerHTML = `📁${preview}`;
-  } else {
-    fileLabel.innerHTML = "📁"; // reset nếu bỏ chọn
-  }
-});
-
-function escapeHtml(str){return str.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
-function fmtTime(){const d=new Date();return d.getHours().toString().padStart(2,'0')+":"+d.getMinutes().toString().padStart(2,'0');}
-function scrollToEnd(){board.scrollTop=board.scrollHeight;}
-
-function appendMsg(sender, text, time, fileUrl){
-  const isMine = sender === currUser;
-  let content = "";
-
-  if(fileUrl){
-    const lower = fileUrl.toLowerCase();
-    const filename = fileUrl.split("/").pop();
-
-    if(lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".jpeg")){
-      content += `<img src="${fileUrl}" class="chat-image">`;
-    } 
-    else if(lower.endsWith(".pdf")){
-      content += `<a href="${fileUrl}" download class="file-btn pdf">📕 PDF File</a>`;
-    } 
-    else if(lower.endsWith(".doc") || lower.endsWith(".docx")){
-      content += `<a href="${fileUrl}" download class="file-btn word">📄 Word File</a>`;
-    } 
-    else if(lower.endsWith(".zip") || lower.endsWith(".rar")){
-      content += `<a href="${fileUrl}" download class="file-btn zip">🗜 ZIP File</a>`;
-    } 
-    else {
-      content += `<a href="${fileUrl}" download class="file-btn other">📁 ${filename}</a>`;
-    }
+    if (text) content += `<p>${escapeHtml(text)}</p>`;
+    const html = `
+      <div id="msg-${id}" class="msg ${isMine ? "msg-out" : "msg-in"}">
+        <div class="bubble">
+          ${content}
+          <span class="time">${time}</span>
+        </div>
+      </div>`;
+    board.insertAdjacentHTML("beforeend", html);
+    scrollToEnd();
   }
 
-  if(text) content += `<p>${escapeHtml(text)}</p>`;
-  
-  const html = `<div class="msg ${isMine?'msg-out':'msg-in'}"><div class="bubble">${content}<span class="time">${time}</span></div></div>`;
-  board.insertAdjacentHTML("beforeend", html);
-  scrollToEnd();
-}
-
-const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-const wsUrl = `${protocol}://${window.location.host}/ws/group/${groupId}/`;
-const socket = new WebSocket(wsUrl);
-
-socket.onmessage = e=>{
-  const data = JSON.parse(e.data);
-  if (data.sender === currUser) return; 
-  appendMsg(data.sender, data.message, data.time || fmtTime(), data.file || null);
-};
-
-document.getElementById("group-chat-box").addEventListener("submit", async e=>{
-  e.preventDefault();
-  const text = input.value.trim();
-  const file = fileInput.files[0];
-  let fileUrl = null;
-
-  if(file){
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await fetch("/chat/upload/", {method:"POST", body:formData});
-    const data = await res.json();
-    if(data.url) fileUrl = data.url;
-    fileInput.value = "";
+  // 🔒 Chặn socket trùng
+  if (window.groupSocket && window.groupSocket.readyState === WebSocket.OPEN) {
+    window.groupSocket.close();
   }
 
-  if(!text && !fileUrl) return;
-  if(socket.readyState !== WebSocket.OPEN) return console.warn("⚠️ WebSocket not open");
+  const protocol = location.protocol === "https:" ? "wss" : "ws";
+  window.groupSocket = new WebSocket(`${protocol}://${location.host}/ws/group/${groupId}/`);
+  const socket = window.groupSocket;
 
-  socket.send(JSON.stringify({message:text,sender:currUser,group_id:groupId,file:fileUrl}));
-  input.value = "";
-  appendMsg(currUser, text, fmtTime(), fileUrl);
-  fileLabel.innerHTML = "📁"; 
-});
+  socket.onopen = () => console.log("✅ Connected to group", groupId);
+  socket.onclose = () => console.log("🔌 Disconnected from group");
+  socket.onmessage = e => {
+    const data = JSON.parse(e.data);
+    if (data.error) return console.warn("⚠️", data.error);
+    if (data.sender === currUser) return;
+    appendMsg(data.message_id, data.sender, data.message, data.time || fmtTime(), data.file || null);
+    window.moveFriendToTop(groupId);
+  };
 
-window.addEventListener("beforeunload",()=>{if(socket.readyState===WebSocket.OPEN)socket.close();});
-scrollToEnd();
+  // 🧩 Ngăn addEventListener bị gắn nhiều lần
+  const form = document.getElementById("group-chat-box");
+  if (!form._listenerAdded) {
+    form._listenerAdded = true;
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      const file = fileInput.files[0];
+      let fileUrl = null, msgId = crypto.randomUUID();
+
+      if (file) {
+        fileLabel.innerHTML = "⏳";
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          const res = await fetch("{% url 'chat:upload_file' %}", {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfToken },
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok && data.url) fileUrl = data.url;
+          else alert(data.error || "Lỗi tải file lên!");
+        } catch (err) {
+          console.error("❌ Upload failed:", err);
+        }
+        fileInput.value = "";
+        fileLabel.innerHTML = "📁";
+      }
+
+      if (!text && !fileUrl) return;
+      const time = fmtTime();
+      appendMsg(msgId, currUser, text, time, fileUrl);
+      window.moveFriendToTop(groupId);
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          message_id: msgId,
+          message: text,
+          sender: currUser,
+          group_id: groupId,
+          file: fileUrl,
+          time
+        }));
+      } else {
+        console.warn("⚠️ WebSocket chưa sẵn sàng");
+      }
+
+      input.value = "";
+      input.focus();
+    });
+  }
+
+  window.onload = () => setTimeout(scrollToEnd, 200);
+})();
 </script>
-{% endblock %}
-{% endblock %}
+{% endblock scripts %}
+{% endblock content %}

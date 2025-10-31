@@ -1,10 +1,11 @@
 """
-Django settings for PyChat project.
+Django settings for PyChat project (phiên bản không dùng .env)
 """
 
 import os
 import sys
 from cryptography.fernet import Fernet
+from pymongo import MongoClient
 
 # ==================== BASE DIR ====================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -36,6 +37,11 @@ INSTALLED_APPS = [
 
     # Channels (WebSocket)
     'channels',
+
+    # OTP / 2FA
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'two_factor',
 ]
 
 # ==================== MIDDLEWARE ====================
@@ -43,7 +49,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # ⚡ Bắt buộc giữ nguyên thứ tự
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -122,18 +128,36 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
 ]
-
-CSRF_COOKIE_SECURE = False          # Cho phép chạy HTTP local
+CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False        # Cho phép JS đọc cookie
+CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_USE_SESSIONS = False           # CSRF lưu trong cookie riêng biệt
+CSRF_USE_SESSIONS = False
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
-# ==================== LOGGING (Tùy chọn) ====================
+# ==================== LOGGING ====================
 print(">>> USING DATABASE:", DATABASES['default']['NAME'], file=sys.stderr)
 
 # ==================== ENCRYPTION (Fernet) ====================
 ENCRYPTION_KEY = b'ImgxRnmTZWbRNiw9Corx53P2sxR9e7wibXUVj8xTl9g='
 FERNET = Fernet(ENCRYPTION_KEY)
+
+# ==================== MONGODB ====================
+MONGO_URL = "mongodb+srv://phamduycuong:admin123@cuoicung.m45c2wq.mongodb.net/?appName=Cuoicung"
+try:
+    mongo_client = MongoClient(MONGO_URL)
+    mongo_db = mongo_client["Test"]  # Tên database
+    mongo_messages = mongo_db["messages"]
+    print("✅ MongoDB connected successfully")
+except Exception as e:
+    print("❌ MongoDB connection failed:", e)
+
+# ==================== EMAIL (Gửi OTP) ====================
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "phamduycuong2005241@gmail.com"      # Gmail thật
+EMAIL_HOST_PASSWORD = "gxscfatqdhwkjlgi"               # App password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

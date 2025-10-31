@@ -1,42 +1,50 @@
 {% extends "chat/Base.html" %}
 {% load static %}
-{% block title %}Search Friends{% endblock %}
+
+{% block title %}Tìm kiếm bạn bè{% endblock %}
+
 {% block content %}
-<center>
-    <div class="wrapper" style="width: 400px;">
-        <h2 style="margin: 16px 0px">Add Friends</h2>
-        <div class="topnav">
-            <div class="search-container">
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="text" placeholder="Search by name, username" name="search" style="width: 210px">
-                    <button type="submit" class="btn btn-success">Search</button>
-                </form>
+<div class="container py-4">
+  <div class="d-flex flex-column align-items-center">
+    <h3 class="mb-3 fw-semibold">🔍 Tìm kiếm bạn bè</h3>
+
+    <form method="post" class="d-flex mb-4" style="gap: 8px;">
+      {% csrf_token %}
+      <input 
+        type="text" 
+        name="search" 
+        placeholder="Nhập tên hoặc username..."
+        class="form-control"
+        style="width: 280px;"
+        value="{{ request.POST.search|default:'' }}"
+      >
+      <button type="submit" class="btn btn-success">Tìm</button>
+    </form>
+
+    <div class="card shadow-sm" style="width: 400px; border-radius: 10px;">
+      <ul class="list-group list-group-flush">
+        {% for user in users %}
+        <li class="list-group-item d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <img src="{% static 'images/user_image.jpg' %}" alt="avatar"
+                 class="me-3" style="width:50px;height:50px;border-radius:50%;">
+            <div>
+              <strong>{{ user.name }}</strong><br>
+              <small class="text-muted">@{{ user.username }}</small>
             </div>
-        </div>
-        <ul class="list-group list-group-flush">
-            {% for user in users %}
-            <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <img src="{% static 'images/user_image.jpg' %}" alt="avatar" style="width:50px;height:50px;">
-                    <div class="ml-3">
-                        <div>{{ user.name }}</div>
-                        <div class="text-muted">@{{ user.username }}</div>
-                    </div>
-                </div>
-
-                <div class="btn-group">
-                    <a class="btn btn-sm btn-primary" href="{% url 'chat:chat' user.username %}">Chat</a>
-                    <a class="btn btn-sm btn-success" href="{% url 'chat:addFriend' user.username %}">Add friend</a>
-                </div>
-            </li>
-            {% empty %}
-            <li class="list-group-item text-center text-muted">Không tìm thấy người dùng.</li>
-            {% endfor %}
-        </ul>
-
+          </div>
+          <div class="btn-group">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'chat:chat' user.username %}">💬 Chat</a>
+            <a class="btn btn-sm btn-outline-success" href="{% url 'chat:addFriend' user.username %}">➕ Kết bạn</a>
+          </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-center text-muted py-3">
+          Không tìm thấy người dùng nào.
+        </li>
+        {% endfor %}
+      </ul>
     </div>
-</center>
-
-
+  </div>
+</div>
 {% endblock %}

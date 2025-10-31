@@ -1,10 +1,18 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
-
+from django.contrib.auth.models import User
+from django.utils import timezone
+import random, string
 
 # 🧍 Hồ sơ người dùng
 class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile",
+        null=True, blank=True,  # ✅ cho phép tạm null để migrate an toàn
+    )
     name = models.CharField(max_length=25)
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=20, unique=True)
@@ -154,3 +162,13 @@ class GroupMessage(models.Model):
         indexes = [
             models.Index(fields=['group', 'timestamp']),
         ]
+
+# OTP
+
+class LoginOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"OTP cho {self.user.username}: {self.code}"
