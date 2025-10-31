@@ -1,30 +1,11 @@
+Nhớ tải zip Redis(   https://drive.google.com/file/d/1ZVLDk8j5fK5EAIHX6um0oFns0l7FUGXz/view   ) 
+tải về trước sau đó giải nén và chạy file redis-server.exe trước khi chạy:
 
-# Django Chat Application
+pip install -r requirements.txt
 
-A chat application built using django rest framework. The 
-user can search other users and add them as a friend and have 
-one to one chat with their friends.
+venv\Scripts\activate
+python manage.py makemigrations
+python manage.py migrate
+daphne PyChat.asgi:application
 
-## Screenshots
-
-![image](/Images/search.jpg)
-
-![image](/Images/chat.jpg)
-
-## Installation
-
-```
-pip install django
-pip install django-rest-framework
-```
-
-## How to use?
-
-- Clone the repository
-- Inside the project folder, open terminal
-- Run the following command in the terminal:
-```
-python manage.py runserver
-```
-- It will run the application on your localhost.
-- Open the browser with the localhost address and enjoy the application.
+"# ChatConCac" 
