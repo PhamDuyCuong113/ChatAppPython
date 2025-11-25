@@ -1,6 +1,9 @@
 <img width="1917" height="966" alt="image" src="https://github.com/user-attachments/assets/4d0c70ca-6231-4313-9213-b68092cd713b" />
+Xác thực OTP
 <img width="1919" height="870" alt="image" src="https://github.com/user-attachments/assets/6c1ccf33-e385-4840-a25d-5b2da21ce8df" />
+Chat nhóm
 <img width="1918" height="871" alt="image" src="https://github.com/user-attachments/assets/4fee9f1c-08aa-46f3-9f96-d0ddffa451a2" />
+Chat cá nhân
 <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/ce9bf5ae-9d16-4e51-8440-be36a0a46fbc" />
 <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/0011efd6-259b-490c-9f5b-9f691312072d" />
 <img width="1919" height="873" alt="image" src="https://github.com/user-attachments/assets/4c213cbe-cc8a-4edc-bb4c-fc2ffcec104a" />
