@@ -8,4 +8,3 @@ python manage.py makemigrations
 python manage.py migrate
 daphne PyChat.asgi:application
 
-"# ChatConCac" 
