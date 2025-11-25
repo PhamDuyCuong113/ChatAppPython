@@ -4,7 +4,10 @@ tải về trước sau đó giải nén và chạy file redis-server.exe trư�
 pip install -r requirements.txt
 
 venv\Scripts\activate
+
 python manage.py makemigrations
+
 python manage.py migrate
+
 daphne PyChat.asgi:application
 
